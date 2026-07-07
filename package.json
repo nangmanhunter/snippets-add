@@ -1,4 +1,9 @@
 {
+  "publisher": "nangmanhunter-publisher",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nangmanhunter/snippets-add.git"
+  },
   "name": "snippets-add",
   "displayName": "snippets-add",
   "description": "snippets-add",
