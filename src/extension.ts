@@ -76,24 +76,24 @@ export function activate(context: vscode.ExtensionContext) {
 
             // 5. Get metadata inputs (Name, Prefix, Scope, Description)
             const snippetName = await vscode.window.showInputBox({
-                placeHolder: 'Snippet Name (Used as ID)',
+                placeHolder: 'name (Used as ID)',
                 prompt: 'Enter a unique name for this snippet.'
             });
             if (!snippetName) return;
+            
+            const snippetScope = await vscode.window.showInputBox({
+                placeHolder: 'scope (e.g., javascript,typescript) - Leave empty for global',
+                prompt: 'Enter the languages this snippet applies to, separated by commas (Only valid for global snippet files).'
+            });
 
             const snippetPrefix = await vscode.window.showInputBox({
-                placeHolder: 'Trigger prefix (e.g., fc, myfunc)',
+                placeHolder: 'prefix (e.g., fc, myfunc)',
                 prompt: 'Enter the prefix shortcut to trigger the snippet in the editor.'
             });
             if (!snippetPrefix) return;
 
-            const snippetScope = await vscode.window.showInputBox({
-                placeHolder: 'Scope (e.g., javascript,typescript) - Leave empty for global',
-                prompt: 'Enter the languages this snippet applies to, separated by commas (Only valid for global snippet files).'
-            });
-
             const snippetDescription = await vscode.window.showInputBox({
-                placeHolder: 'Snippet Description',
+                placeHolder: 'description',
                 prompt: 'Enter a short description of what this snippet does.'
             });
 
