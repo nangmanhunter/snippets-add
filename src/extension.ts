@@ -10,24 +10,24 @@ export function activate(context: vscode.ExtensionContext) {
     let disposable = vscode.commands.registerCommand('extension.createSnippetFromSelection', async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showErrorMessage('활성화된 에디터가 없습니다.');
+            vscode.window.showErrorMessage('No active editor found.');
             return;
         }
 
-        // 1. Selection 잡힌 텍스트 가져오기 (Snippet의 body가 됨)
+        // 1. Get the selected text (This will become the snippet body)
         const selection = editor.selection;
         const selectedText = editor.document.getText(selection);
         if (!selectedText) {
-            vscode.window.showWarningMessage('스니펫으로 만들 코드를 먼저 선택(selection)해주세요.');
+            vscode.window.showWarningMessage('Please select the code you want to make into a snippet first.');
             return;
         }
 
-        // 스니펫 body 포맷팅 (줄바꿈 기준으로 배열화)
+        // Format snippet body (Split by line breaks into an array)
         const snippetBody = selectedText.split(/\r?\n/);
 
         try {
-            // 2. VS Code의 사용자 스니펫 디렉토리 경로 지정
-            // OS별로 설정 경로가 조금씩 달라서 처리해줘야 해.
+            // 2. Specify the VS Code user snippets directory path
+            // Handle different OS paths
             let appDataPath = '';
             if (process.platform === 'win32') {
                 appDataPath = process.env.APPDATA || '';
@@ -38,35 +38,35 @@ export function activate(context: vscode.ExtensionContext) {
             }
             const snippetsDir = path.join(appDataPath, 'Code', 'User', 'snippets');
 
-            // 디렉토리가 없으면 생성
+            // Create directory if it doesn't exist
             if (!fs.existsSync(snippetsDir)) {
                 fs.mkdirSync(snippetsDir, { recursive: true });
             }
 
-            // 3. 기존 snippet 파일 목록 긁어오기
+            // 3. Get existing snippet files
             const files = fs.readdirSync(snippetsDir).filter(file => file.endsWith('.json') || file.endsWith('.code-snippets'));
             
-            // 만약 기존 파일이 없다면 새로 만들 수 있도록 옵션 제공
-            const createNewOption = '+ 새 스니펫 파일 생성...';
+            // Provide an option to create a new file if needed
+            const createNewOption = '+ Create new snippet file...';
             const pickOptions = [createNewOption, ...files];
 
-            // 4. 스니펫 파일 선택창 (QuickPick)
+            // 4. File selection QuickPick
             let selectedFile = await vscode.window.showQuickPick(pickOptions, {
-                placeHolder: '스니펫을 추가할 파일을 선택하세요.'
+                placeHolder: 'Select a snippet file to add to.'
             });
 
             if (!selectedFile) return;
 
             let targetFilePath = '';
             if (selectedFile === createNewOption) {
-                // 새 파일명 입력받기
+                // Get new file name
                 const newFileName = await vscode.window.showInputBox({
-                    placeHolder: '예: my-global-snippets',
-                    prompt: '생성할 스니펫 파일 이름을 입력하세요 (.code-snippets 확장자가 자동으로 붙습니다)'
+                    placeHolder: 'e.g., my-global-snippets',
+                    prompt: 'Enter the name of the snippet file (.code-snippets extension will be added automatically)'
                 });
                 if (!newFileName) return;
                 targetFilePath = path.join(snippetsDir, `${newFileName}.code-snippets`);
-                // 빈 json 파일 생성
+                // Create an empty json file
                 if (!fs.existsSync(targetFilePath)) {
                     fs.writeFileSync(targetFilePath, '{}', 'utf8');
                 }
@@ -74,49 +74,46 @@ export function activate(context: vscode.ExtensionContext) {
                 targetFilePath = path.join(snippetsDir, selectedFile);
             }
 
-            // 5. 메타데이터 입력 받기 (Name, Prefix, Scope, Description)
+            // 5. Get metadata inputs (Name, Prefix, Scope, Description)
             const snippetName = await vscode.window.showInputBox({
-                placeHolder: '스니펫 이름 (ID로 사용됨)',
-                prompt: '스니펫의 고유 이름을 입력하세요.'
+                placeHolder: 'Snippet Name (Used as ID)',
+                prompt: 'Enter a unique name for this snippet.'
             });
             if (!snippetName) return;
 
             const snippetPrefix = await vscode.window.showInputBox({
-                placeHolder: '호출 prefix (예: fc, myfunc)',
-                prompt: '에디터에서 입력할 단축어(prefix)를 입력하세요.'
+                placeHolder: 'Trigger prefix (e.g., fc, myfunc)',
+                prompt: 'Enter the prefix shortcut to trigger the snippet in the editor.'
             });
             if (!snippetPrefix) return;
 
             const snippetScope = await vscode.window.showInputBox({
-                placeHolder: 'scope (예: javascript,typescript) - 공백 시 전역',
-                prompt: '스니펫이 적용될 언어를 쉼표로 구분해 입력하세요 (글로벌 스니펫 파일인 경우에만 유효).'
+                placeHolder: 'Scope (e.g., javascript,typescript) - Leave empty for global',
+                prompt: 'Enter the languages this snippet applies to, separated by commas (Only valid for global snippet files).'
             });
 
             const snippetDescription = await vscode.window.showInputBox({
-                placeHolder: '스니펫 설명',
-                prompt: '이 스니펫이 무엇을 하는지 설명을 적어주세요.'
+                placeHolder: 'Snippet Description',
+                prompt: 'Enter a short description of what this snippet does.'
             });
 
-
-
-            
-            // 6. 파일 읽어서 원래 문자열 그대로 유지한 채 편집하기
+            // 6. Read the file and edit it while maintaining the original string format
             const fileContent = fs.readFileSync(targetFilePath, 'utf8') || '{}';
             
-            // 삽입할 스니펫 데이터 객체 준비
+            // Prepare snippet data object to insert
             const newSnippetData = {
                 prefix: snippetPrefix,
                 body: snippetBody,
                 description: snippetDescription || ''
             };
 
-            // scope가 있으면 추가
+            // Add scope if provided
             if (snippetScope && snippetScope.trim() !== '') {
                 Object.assign(newSnippetData, { scope: snippetScope });
             }
 
-            // jsonc.modify가 마법을 부리는 핵심 함수야!
-            // 기존 텍스트(fileContent)에서 [snippetName] 경로를 찾아 newSnippetData를 집어넣는 '변경 내역(Edits)'을 계산해줘.
+            // jsonc.modify calculates the 'edits' to insert newSnippetData at [snippetName] 
+            // path without breaking the original comments or formatting.
             const edits = jsonc.modify(fileContent, [snippetName], newSnippetData, {
                 formattingOptions: {
                     insertSpaces: true,
@@ -125,15 +122,15 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             });
 
-            // 계산된 변경 내역(Edits)을 원래 소스코드에 적용해서 최종 문자열을 완성해 (주석 유지됨!)
+            // Apply the calculated edits to the original text (Comments are preserved!)
             const updatedContent = jsonc.applyEdits(fileContent, edits);
 
-            // 파일에 그대로 덮어쓰기
+            // Overwrite the file
             fs.writeFileSync(targetFilePath, updatedContent, 'utf8');
-            vscode.window.showInformationMessage(`'${snippetName}' 스니펫이 주석을 유지하며 성공적으로 등록되었습니다!`);
+            vscode.window.showInformationMessage(`Snippet '${snippetName}' has been successfully registered with comments preserved!`);
 
         } catch (error: any) {
-            vscode.window.showErrorMessage(`스니펫 등록 중 오류 발생: ${error.message}`);
+            vscode.window.showErrorMessage(`Error occurred while registering snippet: ${error.message}`);
         }
     });
 
