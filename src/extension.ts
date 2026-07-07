@@ -100,17 +100,19 @@ export function activate(context: vscode.ExtensionContext) {
             // 6. Read the file and edit it while maintaining the original string format
             const fileContent = fs.readFileSync(targetFilePath, 'utf8') || '{}';
             
-            // Prepare snippet data object to insert
-            const newSnippetData = {
-                prefix: snippetPrefix,
-                body: snippetBody,
-                description: snippetDescription || ''
-            };
 
-            // Add scope if provided
+            // 💡 1. 빈 객체를 만들고, scope 조건에 따라 순서를 보장하며 데이터 채우기
+            const newSnippetData: any = {};
+
+            // scope가 있으면 가장 먼저 객체에 주입 (순서 1등)
             if (snippetScope && snippetScope.trim() !== '') {
-                Object.assign(newSnippetData, { scope: snippetScope });
+                newSnippetData.scope = snippetScope;
             }
+            // 나머지 속성들을 순서대로 주입
+            newSnippetData.prefix = snippetPrefix;
+            newSnippetData.body = snippetBody;
+            newSnippetData.description = snippetDescription || '';
+
 
             // jsonc.modify calculates the 'edits' to insert newSnippetData at [snippetName] 
             // path without breaking the original comments or formatting.
@@ -122,6 +124,7 @@ export function activate(context: vscode.ExtensionContext) {
                 }
             });
 
+            
             // Apply the calculated edits to the original text (Comments are preserved!)
             const updatedContent = jsonc.applyEdits(fileContent, edits);
 
