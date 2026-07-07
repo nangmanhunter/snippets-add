@@ -1,4 +1,5 @@
 {
+  "icon": ".assets/logo.png",
   "publisher": "nangmanhunter-publisher",
   "repository": {
     "type": "git",
