@@ -97,36 +97,40 @@ export function activate(context: vscode.ExtensionContext) {
                 prompt: '이 스니펫이 무엇을 하는지 설명을 적어주세요.'
             });
 
-            // 6. 파일 읽어서 데이터 추가 후 저장
-            const fileContent = fs.readFileSync(targetFilePath, 'utf8') || '{}';
-            let snippetsJson: any = {};
+
+
             
-            try {
-                snippetsJson = jsonc.parse(fileContent);
-
-                // 만약 파일이 완전히 비어있거나 올바른 객체가 아니면 빈 객체로 방어 처리
-                if (!snippetsJson || typeof snippetsJson !== 'object') {
-                    snippetsJson = {};
-                }
-            } catch (e) {
-                snippetsJson = {}; // 파싱 실패 시 초기화
-            }
-
-            // 새로운 스니펫 객체 생성
-            snippetsJson[snippetName] = {
+            // 6. 파일 읽어서 원래 문자열 그대로 유지한 채 편집하기
+            const fileContent = fs.readFileSync(targetFilePath, 'utf8') || '{}';
+            
+            // 삽입할 스니펫 데이터 객체 준비
+            const newSnippetData = {
                 prefix: snippetPrefix,
                 body: snippetBody,
                 description: snippetDescription || ''
             };
 
-            // scope가 입력되었을 때만 추가
+            // scope가 있으면 추가
             if (snippetScope && snippetScope.trim() !== '') {
-                snippetsJson[snippetName].scope = snippetScope;
+                Object.assign(newSnippetData, { scope: snippetScope });
             }
 
-            // 파일에 예쁘게 포맷팅해서 저장
-            fs.writeFileSync(targetFilePath, JSON.stringify(snippetsJson, null, 4), 'utf8');
-            vscode.window.showInformationMessage(`'${snippetName}' 스니펫이 성공적으로 등록되었습니다!`);
+            // jsonc.modify가 마법을 부리는 핵심 함수야!
+            // 기존 텍스트(fileContent)에서 [snippetName] 경로를 찾아 newSnippetData를 집어넣는 '변경 내역(Edits)'을 계산해줘.
+            const edits = jsonc.modify(fileContent, [snippetName], newSnippetData, {
+                formattingOptions: {
+                    insertSpaces: true,
+                    tabSize: 4,
+                    eol: '\n'
+                }
+            });
+
+            // 계산된 변경 내역(Edits)을 원래 소스코드에 적용해서 최종 문자열을 완성해 (주석 유지됨!)
+            const updatedContent = jsonc.applyEdits(fileContent, edits);
+
+            // 파일에 그대로 덮어쓰기
+            fs.writeFileSync(targetFilePath, updatedContent, 'utf8');
+            vscode.window.showInformationMessage(`'${snippetName}' 스니펫이 주석을 유지하며 성공적으로 등록되었습니다!`);
 
         } catch (error: any) {
             vscode.window.showErrorMessage(`스니펫 등록 중 오류 발생: ${error.message}`);
