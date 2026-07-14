@@ -21,7 +21,7 @@
     "commands": [
       {
         "command": "extension.createSnippetFromSelection",
-        "title": "snippets-add"
+        "title": "📦snippets-add"
       }
     ],
     "menus": {

@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (!snippetName) return;
             
             const snippetScope = await vscode.window.showInputBox({
-                placeHolder: '📦name.scope (e.g., javascript,typescript) - Leave empty for global',
+                placeHolder: '🌐name.scope (e.g., javascript,typescript) - Leave empty for global',
                 prompt: 'Enter the languages this snippet applies to, separated by commas (Only valid for global snippet files).'
             });
 
