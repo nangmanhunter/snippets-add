@@ -3,7 +3,7 @@
 ## 💻commands
 | command     | descriptions   |
 | :---------- | :------------- |
-| `snippet-add` | snippet adding |
+| `📦snippet-add` | snippet adding |
 
 
 ## ⚡demos
